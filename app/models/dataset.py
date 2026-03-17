@@ -20,6 +20,8 @@ class Dataset(Base, TimestampMixin):
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     version: Mapped[str] = mapped_column(String(50), default="1.0.0")
     case_count: Mapped[int] = mapped_column(Integer, default=0)
+    source_type: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)  # excel_import, manual, etc.
+    metadata_: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # 存储节点定义、场景等
 
     cases = relationship("Case", back_populates="dataset")
     experiments = relationship("Experiment", back_populates="dataset")
@@ -38,11 +40,15 @@ class Case(Base, TimestampMixin):
         ForeignKey("datasets.id"),
         nullable=False
     )
+    name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)  # 用例名称
     title: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
-    input_query: Mapped[str] = mapped_column(Text, nullable=False)
+    input_query: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # 改为可选
+    input_data: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # 结构化输入
     expected_agent_path: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)
+    expected_output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)  # 期望输出
     golden_output: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
     tags: Mapped[Optional[List]] = mapped_column(JSON, nullable=True)
+    metadata_: Mapped[Optional[dict]] = mapped_column(JSON, nullable=True)  # 存储expected_scores等
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     dataset = relationship("Dataset", back_populates="cases")

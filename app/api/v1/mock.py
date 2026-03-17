@@ -1,11 +1,14 @@
+import random
 from fastapi import APIRouter, Depends
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.models.experiment import Experiment
+from app.models.experiment import Experiment, EvalPlan, ConfigSnapshot
 from app.models.dataset import Dataset, Case
-from app.models.trace import Trace
+from app.models.trace import Trace, NodeResult
+from app.models.product import Product
+from app.models.metric import MetricDefinition, AgentType, AgentMetricMapping
 
 router = APIRouter(prefix="/mock", tags=["mock"])
 
@@ -212,3 +215,248 @@ async def inject_mock_trace(db: AsyncSession = Depends(get_db)):
     await db.refresh(trace)
     
     return {"trace_id": str(trace.id), "message": "Mock trace injected successfully"}
+
+
+@router.post("/create-full-experiment")
+async def create_full_mock_experiment(db: AsyncSession = Depends(get_db)):
+    """创建完整的 Mock 评测实验，包括产品、数据集、评测计划、实验、Trace 和指标评分"""
+    
+    # 1. 创建或获取产品
+    product_result = await db.execute(
+        select(Product).where(Product.name == "TanQi AI Agent")
+    )
+    product = product_result.scalar_one_or_none()
+    if not product:
+        product = Product(
+            name="TanQi AI Agent",
+            description="TanQi 智能调研助手",
+            version="2.0.0"
+        )
+        db.add(product)
+        await db.flush()
+    
+    # 2. 创建配置快照
+    config_snapshot = ConfigSnapshot(
+        product_id=product.id,
+        snapshot_name="v2.0.0-20240317",
+        model_config={
+            "main_agent": "gpt-4o",
+            "card_agents": "gpt-4o-mini",
+            "temperature": 0.7
+        },
+        prompt_versions={
+            "main_agent_system": "v1.2.0",
+            "search_card_system": "v1.1.0",
+            "report_card_system": "v1.3.0"
+        }
+    )
+    db.add(config_snapshot)
+    await db.flush()
+    
+    # 3. 创建数据集和测试用例
+    dataset = Dataset(
+        name="TanQi 评测数据集 v1",
+        description="包含金融分析、市场调研等场景的测试用例",
+        version="1.0.0"
+    )
+    db.add(dataset)
+    await db.flush()
+    
+    cases_data = [
+        {"title": "特斯拉财报分析", "input_query": "分析特斯拉最新财报，找出关键风险因素"},
+        {"title": "比亚迪市场调研", "input_query": "分析比亚迪2024年销量数据和市场份额变化"},
+        {"title": "AI芯片竞争格局", "input_query": "分析英伟达、AMD、Intel在AI芯片市场的竞争格局"},
+    ]
+    cases = []
+    for case_data in cases_data:
+        case = Case(dataset_id=dataset.id, **case_data)
+        db.add(case)
+        cases.append(case)
+    await db.flush()
+    
+    # 4. 创建评测计划
+    # 获取所有指标
+    metrics_result = await db.execute(select(MetricDefinition).where(MetricDefinition.is_active == True))
+    metrics = metrics_result.scalars().all()
+    metric_ids = [str(m.id) for m in metrics]
+    
+    eval_plan = EvalPlan(
+        name="TanQi Agent 全面评测",
+        description="覆盖系统层、协作层、单体层的完整评测计划",
+        metric_ids=metric_ids,
+        node_metric_mapping={
+            "main_agent": ["plan_quality", "parallel_efficiency", "delegate_success_rate"],
+            "search_card": ["tool_call_success_rate", "tool_selection_accuracy", "response_relevance"],
+            "report_card": ["task_completion", "info_completeness", "output_accuracy"]
+        }
+    )
+    db.add(eval_plan)
+    await db.flush()
+    
+    # 5. 创建实验
+    experiment = Experiment(
+        name=f"TanQi Agent 评测 - {cases_data[0]['title']}",
+        product_id=product.id,
+        dataset_id=dataset.id,
+        config_snapshot_id=config_snapshot.id,
+        eval_plan_id=eval_plan.id,
+        status="completed",
+        total_cases=len(cases),
+        completed_cases=len(cases),
+        overall_score=7.8
+    )
+    db.add(experiment)
+    await db.flush()
+    
+    # 6. 为每个用例创建 Trace 和 NodeResult
+    traces_created = []
+    for i, case in enumerate(cases):
+        # 创建 Trace
+        trace = Trace(
+            experiment_id=experiment.id,
+            case_id=case.id,
+            status="completed",
+            raw_trace=MOCK_RAW_TRACE,
+            total_tokens=MOCK_RAW_TRACE["total_tokens"] + random.randint(-500, 500),
+            total_latency_ms=MOCK_RAW_TRACE["total_latency_ms"] + random.randint(-1000, 2000)
+        )
+        db.add(trace)
+        await db.flush()
+        traces_created.append(trace)
+        
+        # 为每个节点创建 NodeResult
+        for node in MOCK_RAW_TRACE["nodes"]:
+            node_type = node.get("card_type", node.get("node_type", "unknown")).lower()
+            if node_type == "searchcard":
+                node_type = "search_card"
+            elif node_type == "reportcard":
+                node_type = "report_card"
+            
+            # 生成模拟的指标评分
+            auto_scores = {
+                "tool_call_success_rate": round(random.uniform(0.85, 1.0), 2),
+                "tool_selection_accuracy": round(random.uniform(0.80, 0.95), 2),
+            }
+            manual_scores = {
+                "response_relevance": round(random.uniform(7.0, 9.5), 1),
+                "info_completeness": round(random.uniform(6.5, 9.0), 1),
+                "output_accuracy": round(random.uniform(7.0, 9.0), 1),
+            }
+            
+            if node_type == "main_agent":
+                auto_scores["parallel_efficiency"] = round(random.uniform(0.6, 0.9), 2)
+                manual_scores["plan_quality"] = round(random.uniform(7.0, 9.0), 1)
+                manual_scores["delegate_success_rate"] = round(random.uniform(0.85, 1.0), 2)
+            elif node_type == "report_card":
+                manual_scores["task_completion"] = round(random.uniform(7.5, 9.5), 1)
+                auto_scores["code_execution_success"] = round(random.uniform(0.9, 1.0), 2)
+            
+            node_result = NodeResult(
+                trace_id=trace.id,
+                node_name=node["node_name"],
+                node_type=node_type,
+                metric_scores={**auto_scores, **manual_scores},
+                auto_scores=auto_scores,
+                manual_scores=manual_scores,
+                node_input={"summary": node.get("input_summary", "")},
+                node_output={"summary": node.get("output_summary", "")},
+                latency_ms=node.get("latency_ms", 0) + random.randint(-100, 200),
+                tokens_used=node.get("tokens_used", 0) + random.randint(-50, 100)
+            )
+            db.add(node_result)
+    
+    await db.commit()
+    
+    return {
+        "message": "完整 Mock 评测实验创建成功",
+        "experiment_id": str(experiment.id),
+        "product_id": str(product.id),
+        "dataset_id": str(dataset.id),
+        "eval_plan_id": str(eval_plan.id),
+        "traces_count": len(traces_created),
+        "cases_count": len(cases)
+    }
+
+
+@router.get("/experiment-summary/{experiment_id}")
+async def get_experiment_summary(experiment_id: str, db: AsyncSession = Depends(get_db)):
+    """获取实验评测结果摘要"""
+    import uuid
+    
+    # 获取实验
+    exp_result = await db.execute(
+        select(Experiment).where(Experiment.id == uuid.UUID(experiment_id))
+    )
+    experiment = exp_result.scalar_one_or_none()
+    if not experiment:
+        return {"error": "Experiment not found"}
+    
+    # 获取所有 Trace
+    traces_result = await db.execute(
+        select(Trace).where(Trace.experiment_id == experiment.id)
+    )
+    traces = traces_result.scalars().all()
+    
+    # 获取所有 NodeResult
+    all_node_results = []
+    for trace in traces:
+        nodes_result = await db.execute(
+            select(NodeResult).where(NodeResult.trace_id == trace.id)
+        )
+        all_node_results.extend(nodes_result.scalars().all())
+    
+    # 按节点类型聚合指标
+    node_type_metrics = {}
+    for nr in all_node_results:
+        nt = nr.node_type or "unknown"
+        if nt not in node_type_metrics:
+            node_type_metrics[nt] = {"count": 0, "metrics": {}}
+        node_type_metrics[nt]["count"] += 1
+        
+        if nr.metric_scores:
+            for metric, score in nr.metric_scores.items():
+                if metric not in node_type_metrics[nt]["metrics"]:
+                    node_type_metrics[nt]["metrics"][metric] = []
+                node_type_metrics[nt]["metrics"][metric].append(score)
+    
+    # 计算平均值
+    for nt, data in node_type_metrics.items():
+        for metric, scores in data["metrics"].items():
+            data["metrics"][metric] = {
+                "avg": round(sum(scores) / len(scores), 2),
+                "min": round(min(scores), 2),
+                "max": round(max(scores), 2),
+                "count": len(scores)
+            }
+    
+    # 计算整体指标
+    overall_metrics = {}
+    for nr in all_node_results:
+        if nr.metric_scores:
+            for metric, score in nr.metric_scores.items():
+                if metric not in overall_metrics:
+                    overall_metrics[metric] = []
+                overall_metrics[metric].append(score)
+    
+    for metric, scores in overall_metrics.items():
+        overall_metrics[metric] = {
+            "avg": round(sum(scores) / len(scores), 2),
+            "min": round(min(scores), 2),
+            "max": round(max(scores), 2),
+            "count": len(scores)
+        }
+    
+    return {
+        "experiment": {
+            "id": str(experiment.id),
+            "name": experiment.name,
+            "status": experiment.status,
+            "total_cases": experiment.total_cases,
+            "completed_cases": experiment.completed_cases,
+            "overall_score": experiment.overall_score
+        },
+        "traces_count": len(traces),
+        "node_results_count": len(all_node_results),
+        "metrics_by_node_type": node_type_metrics,
+        "overall_metrics": overall_metrics
+    }

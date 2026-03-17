@@ -5,6 +5,11 @@ from app.models.dataset import Dataset, Case
 from app.models.experiment import ConfigSnapshot, EvalPlan, Experiment
 from app.models.trace import Trace, NodeResult
 from app.models.badcase import BadCase, Changelog
+from app.models.eval_node import (
+    EvalNodeDefinition, GateDefinition, NodeScoreResult,
+    GateCheckResult, LayerAggregateScore, InvestigationScore
+)
+from app.models.evaluation_result import EvaluationResult
 
 __all__ = [
     "TimestampMixin",
@@ -20,4 +25,11 @@ __all__ = [
     "NodeResult",
     "BadCase",
     "Changelog",
+    "EvalNodeDefinition",
+    "GateDefinition",
+    "NodeScoreResult",
+    "GateCheckResult",
+    "LayerAggregateScore",
+    "InvestigationScore",
+    "EvaluationResult",
 ]

@@ -9,6 +9,11 @@ from app.api.v1.traces import router as traces_router
 from app.api.v1.changelogs import router as changelogs_router
 from app.api.v1.dashboard import router as dashboard_router
 from app.api.v1.mock import router as mock_router
+from app.api.v1.metrics import router as metrics_router
+from app.api.v1.eval_nodes import router as eval_nodes_router
+from app.api.v1.langfuse import router as langfuse_router
+from app.api.v1.evaluation import router as evaluation_router
+from app.api.v1.dataset_import import router as dataset_import_router
 
 api_router = APIRouter()
 
@@ -21,6 +26,11 @@ api_router.include_router(traces_router)
 api_router.include_router(changelogs_router)
 api_router.include_router(dashboard_router)
 api_router.include_router(mock_router)
+api_router.include_router(metrics_router)
+api_router.include_router(eval_nodes_router)
+api_router.include_router(langfuse_router)
+api_router.include_router(evaluation_router)
+api_router.include_router(dataset_import_router)
 
 
 @api_router.get("/ping")
