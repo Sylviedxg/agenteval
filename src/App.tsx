@@ -5,10 +5,13 @@ import Dashboard from './pages/Dashboard'
 import Experiments from './pages/Experiments'
 import ExperimentDetail from './pages/Experiments/Detail'
 import TraceDetail from './pages/Experiments/TraceDetail'
+import TraceViewer from './pages/TraceDetail'
 import BadCases from './pages/BadCases'
 import Products from './pages/Config/Products'
 import Metrics from './pages/Config/Metrics'
 import Datasets from './pages/Config/Datasets'
+import EvalNodes from './pages/Config/EvalNodes'
+import Evaluation from './pages/Evaluation'
 import Changelog from './pages/Changelog'
 
 function App() {
@@ -46,6 +49,9 @@ function App() {
             <Route path="config/products" element={<Products />} />
             <Route path="config/metrics" element={<Metrics />} />
             <Route path="config/datasets" element={<Datasets />} />
+            <Route path="config/eval-nodes" element={<EvalNodes />} />
+            <Route path="evaluation" element={<Evaluation />} />
+            <Route path="traces/:traceId" element={<TraceViewer />} />
             <Route path="changelog" element={<Changelog />} />
           </Route>
         </Routes>

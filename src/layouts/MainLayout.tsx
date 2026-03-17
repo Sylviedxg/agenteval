@@ -6,6 +6,8 @@ import {
   BugOutlined,
   SettingOutlined,
   HistoryOutlined,
+  NodeIndexOutlined,
+  PlayCircleOutlined,
 } from '@ant-design/icons';
 import { Outlet, useNavigate, useLocation } from 'react-router-dom';
 
@@ -30,6 +32,11 @@ const menuItems: MenuItem[] = [
     label: 'BadCase',
   },
   {
+    key: '/evaluation',
+    icon: <PlayCircleOutlined />,
+    label: '评测执行',
+  },
+  {
     key: '/config',
     icon: <SettingOutlined />,
     label: '配置',
@@ -45,6 +52,11 @@ const menuItems: MenuItem[] = [
       {
         key: '/config/datasets',
         label: '评测集',
+      },
+      {
+        key: '/config/eval-nodes',
+        icon: <NodeIndexOutlined />,
+        label: '评测节点',
       },
     ],
   },

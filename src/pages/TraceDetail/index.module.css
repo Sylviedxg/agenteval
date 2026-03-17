@@ -1,0 +1,38 @@
+.container {
+  padding: 0;
+}
+
+.loadingWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+}
+
+.errorWrapper {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 400px;
+  color: #ff4d4f;
+}
+
+.statsCard {
+  margin-bottom: 16px;
+}
+
+.mainContent {
+  min-height: calc(100vh - 280px);
+}
+
+.treeCard {
+  height: 100%;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+}
+
+.detailCard {
+  height: 100%;
+  max-height: calc(100vh - 280px);
+  overflow-y: auto;
+}
